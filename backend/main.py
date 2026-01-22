@@ -14,6 +14,11 @@ from .council import run_full_council, generate_conversation_title, stage1_colle
 
 app = FastAPI(title="LLM Council API")
 
+
+@app.get("/health")
+async def health():
+    return {"ok": True}
+
 # Enable CORS for local development
 app.add_middleware(
     CORSMiddleware,
