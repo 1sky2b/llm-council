@@ -78,12 +78,6 @@ class Conversation(BaseModel):
     messages: List[Dict[str, Any]]
 
 
-@app.get("/")
-async def root():
-    """Health check endpoint."""
-    return {"status": "ok", "service": "LLM Council API"}
-
-
 @app.get("/api/conversations", response_model=List[ConversationMetadata])
 async def list_conversations():
     """List all conversations (metadata only)."""
@@ -226,11 +220,22 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
 # This must be after all API routes to avoid conflicts
 STATIC_DIR = Path(__file__).parent.parent / "frontend" / "dist"
 
+print(f"Static directory: {STATIC_DIR}", file=sys.stderr)
+print(f"Static directory exists: {STATIC_DIR.exists()}", file=sys.stderr)
+
 if STATIC_DIR.exists():
     # Mount static assets (js, css, etc.)
-    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="static-assets")
+    assets_dir = STATIC_DIR / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="static-assets")
 
-    # Serve index.html for the root and any non-API routes (SPA fallback)
+    # Explicit root route to serve index.html
+    @app.get("/")
+    async def serve_root():
+        """Serve the SPA index.html at root."""
+        return FileResponse(STATIC_DIR / "index.html")
+
+    # Serve index.html for any non-API routes (SPA fallback)
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         """Serve the SPA for any non-API routes."""
@@ -240,6 +245,12 @@ if STATIC_DIR.exists():
             return FileResponse(file_path)
         # Otherwise serve index.html for SPA routing
         return FileResponse(STATIC_DIR / "index.html")
+else:
+    # Fallback for development when frontend isn't built
+    @app.get("/")
+    async def dev_root():
+        """Development fallback."""
+        return {"status": "ok", "service": "LLM Council API", "note": "Frontend not built. Run 'npm run build' in frontend/"}
 
 
 if __name__ == "__main__":
