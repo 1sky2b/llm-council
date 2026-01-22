@@ -12,6 +12,16 @@ import asyncio
 from . import storage
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
 
+
+import sys, traceback
+print("Loading backend.main...", file=sys.stderr)
+try:
+    from fastapi import FastAPI
+except Exception:
+    traceback.print_exc()
+    raise
+
+
 app = FastAPI(title="LLM Council API")
 
 
