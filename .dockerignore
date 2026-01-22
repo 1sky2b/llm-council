@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+env
+.eggs
+*.egg-info
+.pytest_cache
+
+# Node
+node_modules
+frontend/node_modules
+
+# Frontend build artifacts (will be built in Docker)
+frontend/dist
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Data (conversations)
+data/
+
+# Environment files (secrets should be passed via Railway)
+.env
+.env.*
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Misc
+*.log
+*.md
+!README.md
+.DS_Store
+Thumbs.db
