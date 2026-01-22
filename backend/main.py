@@ -1,8 +1,12 @@
 """FastAPI backend for LLM Council."""
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import uuid
@@ -29,10 +33,19 @@ app = FastAPI(title="LLM Council API")
 async def health():
     return {"ok": True}
 
-# Enable CORS for local development
+# Enable CORS for local development and production
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+
+# Add any custom origins from environment
+if os.getenv("CORS_ORIGINS"):
+    allowed_origins.extend(os.getenv("CORS_ORIGINS").split(","))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -209,6 +222,27 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
     )
 
 
+# Serve static frontend files in production
+# This must be after all API routes to avoid conflicts
+STATIC_DIR = Path(__file__).parent.parent / "frontend" / "dist"
+
+if STATIC_DIR.exists():
+    # Mount static assets (js, css, etc.)
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="static-assets")
+
+    # Serve index.html for the root and any non-API routes (SPA fallback)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """Serve the SPA for any non-API routes."""
+        # Check if it's a static file request
+        file_path = STATIC_DIR / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(file_path)
+        # Otherwise serve index.html for SPA routing
+        return FileResponse(STATIC_DIR / "index.html")
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    port = int(os.getenv("PORT", 8001))
+    uvicorn.run(app, host="0.0.0.0", port=port)
